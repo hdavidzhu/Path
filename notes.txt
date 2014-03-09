@@ -1,1 +1,2 @@
-Boundaries cannot be used as wall palette.
+[X] Boundaries cannot be used as wall palette.
+[ ] 

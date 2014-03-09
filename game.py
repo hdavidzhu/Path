@@ -22,6 +22,10 @@ endcolor = 63,255,62
 
 # Global declaration of the world which the player interacts with.
 world = {}
+palette = {}
+
+# Switch between playmode and build mode.
+playmode = True
 
 # Set screen sizes and declare ref for future reference for blocks.
 global ref
@@ -62,13 +66,13 @@ class PathModel:
                     self.world[(boundary.x,boundary.y)] = boundary
 
         # Create block palette.
-        world[(2*ref,ref)] = Wall(self,2*ref,ref)
-        world[(4*ref,ref)] = Lava(self,4*ref,ref)
-        world[(6*ref,ref)] = Ice(self,6*ref,ref)
-        world[(8*ref,ref)] = Mud(self,8*ref,ref)
-        world[(10*ref,ref)] = Reverse(self,10*ref,ref)
-        world[(12*ref,ref)] = Start(self,12*ref,ref)
-        world[(14*ref,ref)] = End(self,14*ref,ref)
+        palette[(2*ref,ref)] = world[(2*ref,ref)] = Wall(self,2*ref,ref)
+        palette[(4*ref,ref)] = world[(4*ref,ref)] = Lava(self,4*ref,ref)
+        palette[(6*ref,ref)] = world[(6*ref,ref)] = Ice(self,6*ref,ref)
+        palette[(8*ref,ref)] = world[(8*ref,ref)] = Mud(self,8*ref,ref)
+        palette[(10*ref,ref)] = world[(10*ref,ref)] = Reverse(self,10*ref,ref)
+        palette[(12*ref,ref)] = world[(12*ref,ref)] = Start(self,12*ref,ref)
+        palette[(14*ref,ref)] = world[(14*ref,ref)] = End(self,14*ref,ref)
 
 
     def getitem(self,x,y):
@@ -224,6 +228,11 @@ class End(Block):
     def interact(self,player):
         return 'end'
 
+class PlayBuild(Block):
+    def __init__(self, model):
+        Block.__init__(self, endcolor, x, y)
+
+
 class PyGamePathView:
     """
     Game viewer in pygame window.
@@ -261,6 +270,21 @@ class PyGamePathController:
         local_area = model.update()
         state = 'node'
 
+        if event.key == pygame.K_ESCAPE:
+            self.model.choice = None
+        if event.key == pygame.K_r:
+            for block in self.model.world:
+                if str(self.model.world[block].__class__) == '__main__.Start':
+                    if block[1] == ref:
+                        pass
+                    else:
+                        self.model.player.x = block[0]
+                        self.model.player.y = block[1]
+                        self.model.player.vx = 0
+                        self.model.player.vy = 0
+                else:
+                    pass
+
         for block in local_area:
             if str(block.__class__) == '__main__.Ice':
                 return
@@ -286,33 +310,27 @@ class PyGamePathController:
             if event.key == pygame.K_DOWN:
                 self.model.player.vy += -self.speed
 
-        if event.key == pygame.K_ESCAPE:
-            self.model.choice = None
-        if event.key == pygame.K_r:
-            for block in self.model.world:
-                if str(self.model.world[block].__class__) == '__main__.Start':
-                    if block[1] == ref:
-                        pass
-                    else:
-                        self.model.player.x = block[0]
-                        self.model.player.y = block[1]
-                        self.model.player.vx = 0
-                        self.model.player.vy = 0
-                else:
-                    pass
-
     def handle_mouse_event(self, event):
         if event.type != MOUSEBUTTONDOWN:
             return
         if event.type == MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
             mx, my = roundpoint(mx, my)
-            if self.model.choice == None:
-                self.model.choice = model.getitem(mx, my)
+            if mx == 0 and my == 0:
+                playmode = not playmode
+
+            if playmode == True:
+                return
             else:
-                model.placeitem(self.model.choice,mx,my)
-
-
+                if self.model.choice == None:
+                    self.model.choice = Node(self.model,mx,my)
+                    model.placeitem(self.model.choice,mx,my)
+                else:
+                    if (mx, my) in palette:
+                        self.model.choice = model.getitem(mx, my)
+                    else:
+                        model.placeitem(self.model.choice,mx,my)
+                
 if __name__ == '__main__':
     pygame.init()
 
