@@ -1,2 +1,3 @@
 [X] Boundaries cannot be used as wall palette.
+[ ] Convert python game to executable.
 [ ] 

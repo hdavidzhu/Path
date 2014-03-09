@@ -19,6 +19,7 @@ mudcolor = 127,87,52
 reversecolor = 145,33,196
 startcolor = 255,235,62
 endcolor = 63,255,62
+playbuildcolor = 0,0,0
 
 # Global declaration of the world which the player interacts with.
 world = {}
@@ -34,6 +35,10 @@ global sheight
 ref = 20
 swidth = 36*ref
 sheight = 24*ref
+
+# Buttons
+playbuildbutton = pygame.image.load('playbuild.jpg')
+playbuildbutton = pygame.transform.scale(playbuildbutton, (ref,ref))
 
 def roundpoint(a, b):
     """
@@ -66,14 +71,16 @@ class PathModel:
                     self.world[(boundary.x,boundary.y)] = boundary
 
         # Create block palette.
-        palette[(2*ref,ref)] = world[(2*ref,ref)] = Wall(self,2*ref,ref)
-        palette[(4*ref,ref)] = world[(4*ref,ref)] = Lava(self,4*ref,ref)
-        palette[(6*ref,ref)] = world[(6*ref,ref)] = Ice(self,6*ref,ref)
-        palette[(8*ref,ref)] = world[(8*ref,ref)] = Mud(self,8*ref,ref)
-        palette[(10*ref,ref)] = world[(10*ref,ref)] = Reverse(self,10*ref,ref)
-        palette[(12*ref,ref)] = world[(12*ref,ref)] = Start(self,12*ref,ref)
-        palette[(14*ref,ref)] = world[(14*ref,ref)] = End(self,14*ref,ref)
+        palette[(3*ref,ref)] = world[(3*ref,ref)] = Wall(self,3*ref,ref)
+        palette[(5*ref,ref)] = world[(5*ref,ref)] = Lava(self,5*ref,ref)
+        palette[(7*ref,ref)] = world[(7*ref,ref)] = Ice(self,7*ref,ref)
+        palette[(9*ref,ref)] = world[(9*ref,ref)] = Mud(self,9*ref,ref)
+        palette[(11*ref,ref)] = world[(11*ref,ref)] = Reverse(self,11*ref,ref)
+        palette[(13*ref,ref)] = world[(13*ref,ref)] = Start(self,13*ref,ref)
+        palette[(15*ref,ref)] = world[(15*ref,ref)] = End(self,15*ref,ref)
 
+        # Create playbuild button.
+        self.playbuild = PlayBuild(self,ref,ref)
 
     def getitem(self,x,y):
         return world[(x,y)]
@@ -229,8 +236,8 @@ class End(Block):
         return 'end'
 
 class PlayBuild(Block):
-    def __init__(self, model):
-        Block.__init__(self, endcolor, x, y)
+    def __init__(self, model, x, y):
+        Block.__init__(self, black, x, y)
 
 
 class PyGamePathView:
@@ -243,7 +250,8 @@ class PyGamePathView:
 
     def draw(self):
         self.screen.fill(pygame.Color(black[0],black[1],black[2]))
-        
+
+        # Draws all blocks.
         for block in self.model.world:
             value = self.model.world[block]
             temp = pygame.Rect(value.x,value.y,value.side,value.side)
@@ -252,6 +260,9 @@ class PyGamePathView:
         # Draws player.
         temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
         pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
+
+        # Draws play button.
+        screen.blit(playbuildbutton,(ref,ref))
 
         pygame.display.update()
 
@@ -264,6 +275,7 @@ class PyGamePathController:
     """
     def __init__(self,model,speed):
         self.model = model
+        self.playbuild = model.playbuild
         self.speed = speed
 
     def handle_keyboard_event(self, event):
@@ -311,16 +323,21 @@ class PyGamePathController:
                 self.model.player.vy += -self.speed
 
     def handle_mouse_event(self, event):
-        if event.type != MOUSEBUTTONDOWN:
-            return
+        global playmode
+
         if event.type == MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
             mx, my = roundpoint(mx, my)
-            if mx == 0 and my == 0:
+
+            # Toggle button for play and pause mode.
+            if mx == self.playbuild.x and my == self.playbuild.y:
                 playmode = not playmode
 
+            # Determines what to do depending on playmode.
             if playmode == True:
-                return
+                for block in palette:
+                    block.color = black
+                pass
             else:
                 if self.model.choice == None:
                     self.model.choice = Node(self.model,mx,my)
