@@ -16,7 +16,7 @@ class PathModel:
     Encodes game state.
     """
     def __init__(self):
-        self.player = Player((255,255,255),50,100,100)
+        self.player = Player((255,255,255),10,10,370)
 
     def update(self):
         self.player.update()
@@ -41,8 +41,12 @@ class Player(pygame.sprite.Sprite):
         if abs(self.vx) <= self.maxx:
             self.x += self.vx
         else:
-            self.x += self.maxx
+            self.vx = self.vx/abs(self.vx)*self.maxx
+            self.x += self.vx
         if abs(self.vy) <= self.maxy:
+            self.y += self.vy
+        else:
+            self.vy = self.vy/abs(self.vy)*self.maxy
             self.y += self.vy
     pass
 
@@ -120,9 +124,11 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             # Exits script when exit button is pressed.
             if event.type == QUIT:
-                sys.exit()
+                running = False
             if event.type == KEYDOWN:
                 controller.handle_keyboard_event(event)
         model.update()
         view.draw()
         clock.tick(60)
+        
+    pygame.quit()
