@@ -25,7 +25,7 @@ world = {}
 palette = {}
 
 # Switch between playmode and build mode.
-playmode = True
+# playmode = True
 
 # Set screen sizes and declare ref for future reference for blocks.
 global ref
@@ -76,9 +76,17 @@ class PathModel:
 
 
     def getitem(self,x,y):
+        """
+        Upon mouseclick, we capture the type of block that is selected and adds it to be prepared to be placed upon second and subsequent mouseclicks.
+        """
         return world[(x,y)]
 
     def placeitem(self, choice, x, y):
+        """
+        This takes a stored type of block and places in the selected grid square.
+
+        choice: the stored block type.
+        """
         if x in range(3*ref,swidth-3*ref,ref) and y in range(3*ref,sheight-3*ref,ref):
             if str(choice.__class__) == '__main__.Start':
                 for block in world:
@@ -156,6 +164,9 @@ class Node(Block):
         self.player = model.player
 
     def interact(self,player):
+        """
+        The interaction for Node is typical motion. it moves in x and y by an increment of vx and vy.
+        """
         if abs(self.player.vx) <= self.player.maxspeed:
             self.player.x += self.player.vx
         else:
@@ -168,10 +179,17 @@ class Node(Block):
             self.player.y += self.player.vy
 
 class Wall(Block):
+    """ A basic wall structure that stops the character."""
     def __init__(self, model, x, y):
         Block.__init__(self, wallcolor, x, y)
 
     def interact(self,player):
+        """
+        This is the meat of our collision detection code. We assume that in one time step, our character finds himself within a wall block. We look at the 
+        relative differences between each side of our character and the corresponding wall sides. We then find the smallest difference and reset the position
+        of the character back that distance in that direction, using if statements to determine the direction that our character was moving. We then set the 
+        velocity in that direction to 0.
+        """
         comparisons = [abs(player.left - self.right), abs(player.right - self.left), abs(player.bottom - self.top), abs(player.top - self.bottom)]
         choice = comparisons.index(min(comparisons))
         if choice == 0:
@@ -190,43 +208,81 @@ class Wall(Block):
             print "ERROR."
 
 class Lava(Block):
+    """ A lava block spells instant death for our character if any part of him touches it."""
     def __init__(self, model, x, y):
         Block.__init__(self, lavacolor, x, y)
         self.player = model.player
 
     def interact(self,player):
-        return 'lava'
+        """The lava block kills our character, thus returning his position to the starting block."""
+        for block in model.world:
+            if str(model.world[block].__class__) == '__main__.Start' and block[1] != ref:
+                self.player.x = block[0]
+                self.player.y = block[1]
+                self.player.vx = 0
+                self.player.vy = 0
+        
 
 class Ice(Block, Node):
+    """ 
+    This block disallows our character from changing its velocity. Can spell doom for our character if a wall kills its velocity while on ice.
+    To do this, we have our controller look at what blocks are near our character and in the case of them is ice, it nulls the affects of any movement
+    inputs. However, the internal interaction of our character is the same as Node (having x and y change depending on vx and vy), so we inherit Node's 
+    interact method.
+    """
     def __init__(self, model, x, y):
         Block.__init__(self, icecolor, x, y)
         self.player = model.player
         
 class Mud(Block):
+    """This block causes our character's max velocity to drop dramatically."""
     def __init__(self, model, x, y):
         Block.__init__(self, mudcolor, x, y)
         self.player = model.player
 
     def interact(self,player):
-        return 'mud'
+        """ qwqweqe"""
+        if abs(self.player.vx) <= self.player.maxspeed/4:
+            self.player.x += self.player.vx
+        else:
+            self.player.vx = self.player.vx/abs(self.player.vx)*self.player.maxspeed/4
+            self.player.x += self.player.vx
+        if abs(self.player.vy) <= self.player.maxspeed/4:
+            self.player.y += self.player.vy
+        else:
+            self.player.vy = self.player.vy/abs(self.player.vy)*self.player.maxspeed/4
+            self.player.y += self.player.vy
+        
 
 class Reverse(Block, Node):
+    """
+    This block reverses the controls for our character. To do this, we have our controller look at what blocks are near our character, and in the case one 
+    of them is reverse, it reverses what the input buttons do.
+    """
     def __init__(self,model,x,y):
         Block.__init__(self, reversecolor, x, y)
         self.player = model.player    
 
 class Start(Block, Node):
+    """ 
+    This block marks where the character teleports to in the case of death or a key press restart.
+    The interact for this block is the same as Node, so we inherit Node for this class.
+    """
     def __init__(self, model, x, y):
         Block.__init__(self, startcolor, x, y)
         self.player = model.player
 
 class End(Block):
+    """
+    This block marks the end of the level. When the character reaches this block, options become available to save the level for future use.
+    """
     def __init__(self, model, x, y):
         Block.__init__(self, endcolor, x, y)
         self.model = model
 
     def interact(self,player):
-        return 'end'
+        """ """
+        
 
 class PlayBuild(Block):
     def __init__(self, model):
@@ -244,6 +300,7 @@ class PyGamePathView:
     def draw(self):
         self.screen.fill(pygame.Color(black[0],black[1],black[2]))
         
+        # We sweep through our world dictionary, drawing the world from the inputs.
         for block in self.model.world:
             value = self.model.world[block]
             temp = pygame.Rect(value.x,value.y,value.side,value.side)
@@ -268,11 +325,11 @@ class PyGamePathController:
 
     def handle_keyboard_event(self, event):
         local_area = model.update()
-        state = 'node'
+        state = 'node'                #default input should be processed as if our character were on a Node block.
 
         if event.key == pygame.K_ESCAPE:
-            self.model.choice = None
-        if event.key == pygame.K_r:
+            self.model.choice = None  # if Escape is pressed, delete and stored block type to place.
+        if event.key == pygame.K_r:   # if r is pressed, it moves our cahracter to start, excluding the one in our palette.
             for block in self.model.world:
                 if str(self.model.world[block].__class__) == '__main__.Start':
                     if block[1] == ref:
@@ -286,9 +343,9 @@ class PyGamePathController:
                     pass
 
         for block in local_area:
-            if str(block.__class__) == '__main__.Ice':
+            if str(block.__class__) == '__main__.Ice':      # we can return here because inputs do not matter in the case of ice.
                 return
-            if str(block.__class__) == '__main__.Reverse':
+            if str(block.__class__) == '__main__.Reverse':  # We use states to determine how to proceed with input processing.
                 state = 'reverse'
 
         if state == 'node':
@@ -316,20 +373,20 @@ class PyGamePathController:
         if event.type == MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
             mx, my = roundpoint(mx, my)
-            if mx == 0 and my == 0:
-                playmode = not playmode
+            # if mx == 0 and my == 0:           # Toggles playmode and buildmode
+            #     playmode = not playmode
 
-            if playmode == True:
-                return
+            # if playmode == True:
+            #     return                        # if in playmode, then mouse inputs are null.
+            # else:
+            if self.model.choice == None: # if no block type is stored, then default to a node input.
+                self.model.choice = Node(self.model,mx,my)   
+                model.placeitem(self.model.choice,mx,my)
             else:
-                if self.model.choice == None:
-                    self.model.choice = Node(self.model,mx,my)
-                    model.placeitem(self.model.choice,mx,my)
+                if (mx, my) in palette:
+                    self.model.choice = model.getitem(mx, my)
                 else:
-                    if (mx, my) in palette:
-                        self.model.choice = model.getitem(mx, my)
-                    else:
-                        model.placeitem(self.model.choice,mx,my)
+                    model.placeitem(self.model.choice,mx,my)
                 
 if __name__ == '__main__':
     pygame.init()
