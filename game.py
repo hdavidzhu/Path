@@ -10,11 +10,17 @@ from pygame.locals import *
 black = 0,0,0
 white = 255,255,255
 red = 255,0,0
+wallcolor = 130, 130,130
+nodecolor = 217, 217, 217
+playercolor = 111, 255, 137
 
-global sw
-global sh
-
-sw, sh = 1000, 400
+# Set screen sizes and declare ref for future reference for blocks.
+global ref
+global swidth
+global sheight
+ref = 20
+swidth = 36*ref
+sheight = 24*ref
 
 class PathModel:
     """
@@ -23,12 +29,20 @@ class PathModel:
     def __init__(self):
         self.player = Player((255,255,255),10,10,370)
         self.nodes = []
-        # for x in range():
-        #     self.node = Block(black,)
+        for x in range(0,swidth,ref):
+            for y in range(0,sheight,ref):
+                node = Node(x,y)
+                self.nodes.append(node)
+        self.boundaries = []
+        for x in range(0,swidth,ref):
+            for y in range(0,sheight,ref):
+                if x not in range(ref,swidth-ref,ref) or y not in range(ref,sheight-ref,ref):
+                    boundary = Wall(x,y)
+                    self.boundaries.append(boundary)
+
 
     def update(self):
         self.player.update()
-    pass
 
 class Player():
     """
@@ -36,8 +50,7 @@ class Player():
     """
     def __init__(self, color, side, x, y):
         self.color = color
-        self.height = side
-        self.width = side
+        self.side = side
         self.x = x
         self.y = y
         self.vx = 0.0
@@ -62,22 +75,19 @@ class Block():
     """
     Creates a block for the game. Currently it inherits from pygame sprite because of pygame's inherent edge detection code.
     """
-    def __init__(self, color, height, width, x, y):
+    def __init__(self, color, x, y):
         self.color = color
-        self.height = height
-        self.width = width
+        self.side = ref
         self.x = x
         self.y = y
 
 class Node(Block):
     def __init__(self, x, y):
-        Block.__init__(self, black, )
-    pass
+        Block.__init__(self, black, x, y)
 
 class Wall(Block):
     def __init__(self, x, y):
-        Block.__init__(self, (200,200,200), 100, 100, x, y)
-        self.awesomeness = awesomeness
+        Block.__init__(self, wallcolor, x, y)
 
 class PyGamePathView:
     """
@@ -89,10 +99,22 @@ class PyGamePathView:
 
     def draw(self):
         self.screen.fill(pygame.Color(red[0],red[1],red[2]))
-        rect = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.width,self.model.player.height)
-        pygame.draw.rect(self.screen, pygame.Color(white[0],white[1],white[2]),rect)
-        pygame.display.update()
+        
+        # Draws nodes.
+        for node in self.model.nodes:
+            temp = pygame.Rect(node.x,node.y,node.side,node.side)
+            pygame.draw.rect(self.screen, pygame.Color(nodecolor[0],nodecolor[1],nodecolor[2]),temp)
 
+        # Draws outer boundaries.
+        for boundary in self.model.boundaries:
+            temp = pygame.Rect(boundary.x,boundary.y,boundary.side,boundary.side)
+            pygame.draw.rect(self.screen, pygame.Color(wallcolor[0],wallcolor[1],wallcolor[2]),temp)
+
+        # Draws player.
+        temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
+        pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
+        
+        pygame.display.update()
 
         # Keep time constant.
         clock.tick(60)
