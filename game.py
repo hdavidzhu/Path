@@ -2,7 +2,6 @@
 Path - The Journey of Bob
 By: David Zhu and Charlie Mouton
 """
-
 import sys, pygame, pygame.mixer
 from pygame.locals import *
 
@@ -10,10 +9,13 @@ from pygame.locals import *
 black = 0,0,0
 white = 255,255,255
 red = 255,0,0   # This is the side reference for creating the whole game grid.
-wallcolor = 130, 130,130
-nodecolor = 217, 217, 217
-playercolor = 111, 255, 137
+wallcolor = 130,130,130
+nodecolor = 217,217,217
+playercolor = 255,56,25
+lavacolor = 217,15,0
+reversecolor = 145,33,196
 
+# Global declaration of the world which the player interacts with.
 world = {}
 
 # Set screen sizes and declare ref for future reference for blocks.
@@ -25,14 +27,18 @@ swidth = 36*ref
 sheight = 24*ref
 
 def roundpoint(a, b):
+    """
+    Floors input point into the nearest upper left grid point.
+
+    a: x coordinate
+    b: y coordinate
+    """
     return ((int(a) / ref) * ref, (int(b) / ref) * ref)
 
 class PathModel:
-    """
-    Encodes game state.
-    """
+    """Encodes game state."""
     def __init__(self):
-        self.player = Player((255,255,255),10,100,370)
+        self.player = Player((255,255,255),.75*ref,100,370)
         self.world = world
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
@@ -69,7 +75,7 @@ class Player():
         self.maxspeed = 1.0
 
     def update(self):
-        # Updates boundaries.
+        """Updates boundaries."""
         self.left = self.x
         self.right = self.x + self.side
         self.top = self.y
@@ -81,11 +87,12 @@ class Player():
         ll = roundpoint(self.left, self.bottom)
         lr = roundpoint(self.right, self.bottom)
 
+        # Find the local area for the character.
         local_area = [world[ul],world[ur],world[ll],world[lr]]
 
+        # Analyze for each area.
         for block in local_area:
             block.interact(self)
-
 
 class Block():
     """
@@ -102,6 +109,7 @@ class Block():
         self.bottom = y + self.side
 
 class Node(Block):
+    """A node is a floor block of our character."""
     def __init__(self, model, x, y):
         Block.__init__(self, nodecolor, x, y)
         self.model = model
@@ -120,7 +128,6 @@ class Node(Block):
 
 class Wall(Block):
     def __init__(self, model, x, y):
-        self.model = model
         Block.__init__(self, wallcolor, x, y)
 
     def interact(self,player):
@@ -140,6 +147,33 @@ class Wall(Block):
             player.vy = 0.0
         else:
             print "ERROR."
+
+class Lava(Block):
+    def __init__(self, model, x, y):
+        Block.__init__(self, lavacolor, x, y)
+        self.model = model
+
+    # def interact(self, player):
+    #     Node.interact(self, player)
+
+class Start(Block):
+    pass
+
+class End(Block):
+    pass
+
+class Ice(Block):
+    pass
+
+class Mud(Block):
+    pass
+
+class Reverse(Block):
+    def __init__(self,model,x,y):
+        Block.__init__(self, reversecolor, x, y)
+        self.model = model       
+
+    pass
 
 class PyGamePathView:
     """
@@ -175,8 +209,6 @@ class PyGamePathController:
         self.speed = speed
 
     def handle_keyboard_event(self, event):
-        if event.type != KEYDOWN:
-            return
         if event.key == pygame.K_LEFT:
             self.model.player.vx += -self.speed
         if event.key == pygame.K_RIGHT:
