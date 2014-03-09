@@ -46,7 +46,7 @@ class PathModel:
                 self.world[(node.x,node.y)] = node
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
-                if x not in range(ref,swidth-ref,ref) or y not in range(ref,sheight-ref,ref):
+                if x not in range(3*ref,swidth-3*ref,ref) or y not in range(3*ref,sheight-3*ref,ref):
                     boundary = Wall(self,x,y)
                     self.world[(boundary.x,boundary.y)] = boundary
 
