@@ -1,0 +1,1 @@
+Boundaries cannot be used as wall palette.

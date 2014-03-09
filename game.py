@@ -2,18 +2,23 @@
 Path - The Journey of Bob
 By: David Zhu and Charlie Mouton
 """
-import sys, pygame, pygame.mixer
+import sys, pygame, pygame.mixer, copy
+from copy import deepcopy as dcp
 from pygame.locals import *
 
 # Define colors.
 black = 0,0,0
 white = 255,255,255
 red = 255,0,0   # This is the side reference for creating the whole game grid.
-wallcolor = 130,130,130
-nodecolor = 217,217,217
 playercolor = 255,56,25
+nodecolor = 217,217,217
+wallcolor = 130,130,130
 lavacolor = 217,15,0
+icecolor = 94,227,255
+mudcolor = 127,87,52
 reversecolor = 145,33,196
+startcolor = 255,235,62
+endcolor = 63,255,62
 
 # Global declaration of the world which the player interacts with.
 world = {}
@@ -40,22 +45,52 @@ class PathModel:
     def __init__(self):
         self.player = Player((255,255,255),.75*ref,100,370)
         self.world = world
+        self.choice = None
+
+        # Create base nodes.
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
                 node = Node(self,x,y)
                 self.world[(node.x,node.y)] = node
+        
+        # Create Outer boundaries.
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
                 if x not in range(3*ref,swidth-3*ref,ref) or y not in range(3*ref,sheight-3*ref,ref):
                     boundary = Wall(self,x,y)
+                    boundary.color = black
                     self.world[(boundary.x,boundary.y)] = boundary
 
-    def placeitem(self, x, y):
-        wall = Wall(self,x,y)
-        self.world[(wall.x,wall.y)] = wall
+        # Create block palette.
+        world[(2*ref,ref)] = Wall(self,2*ref,ref)
+        world[(4*ref,ref)] = Lava(self,4*ref,ref)
+        world[(6*ref,ref)] = Ice(self,6*ref,ref)
+        world[(8*ref,ref)] = Mud(self,8*ref,ref)
+        world[(10*ref,ref)] = Reverse(self,10*ref,ref)
+        world[(12*ref,ref)] = Start(self,12*ref,ref)
+        world[(14*ref,ref)] = End(self,14*ref,ref)
+
+
+    def getitem(self,x,y):
+        return world[(x,y)]
+
+    def placeitem(self, choice, x, y):
+        if x in range(3*ref,swidth-3*ref,ref) and y in range(3*ref,sheight-3*ref,ref):
+            if str(choice.__class__) == '__main__.Start':
+                for block in world:
+                    if str(world[block].__class__) == '__main__.Start':
+                        if block[1] == ref:
+                            pass
+                        else:
+                            world[block] = Node(model,block[0],block[1])
+            if self.world[(x,y)].__class__ == choice.__class__:
+                pass
+            else:
+                block = choice.__class__(model,x,y)
+                self.world[(block.x,block.y)] = block
 
     def update(self):
-        self.player.update()
+        return self.player.update()
 
 class Player():
     """
@@ -67,9 +102,9 @@ class Player():
         self.x = x
         self.y = y
         self.left = self.x
-        self.right = x + self.side
+        self.right = self.x + self.side
         self.top = self.y
-        self.bottom = y + self.side
+        self.bottom = self.y + self.side
         self.vx = 0.0
         self.vy = 0.0
         self.maxspeed = 1.0
@@ -94,6 +129,8 @@ class Player():
         for block in local_area:
             block.interact(self)
 
+        return local_area
+
 class Block():
     """
     Creates a block for the game. Currently it inherits from pygame sprite because of pygame's inherent edge detection code.
@@ -104,27 +141,27 @@ class Block():
         self.x = x
         self.y = y
         self.left = self.x
-        self.right = x + self.side
+        self.right = self.x + self.side
         self.top = self.y
-        self.bottom = y + self.side
+        self.bottom = self.y + self.side
 
 class Node(Block):
     """A node is a floor block of our character."""
     def __init__(self, model, x, y):
         Block.__init__(self, nodecolor, x, y)
-        self.model = model
+        self.player = model.player
 
     def interact(self,player):
-        if abs(self.model.player.vx) <= self.model.player.maxspeed:
-            self.model.player.x += self.model.player.vx
+        if abs(self.player.vx) <= self.player.maxspeed:
+            self.player.x += self.player.vx
         else:
-            self.model.player.vx = self.model.player.vx/abs(self.model.player.vx)*self.model.player.maxspeed
-            self.model.player.x += self.model.player.vx
-        if abs(self.model.player.vy) <= self.model.player.maxspeed:
-            self.model.player.y += self.model.player.vy
+            self.player.vx = self.player.vx/abs(self.player.vx)*self.player.maxspeed
+            self.player.x += self.player.vx
+        if abs(self.player.vy) <= self.player.maxspeed:
+            self.player.y += self.player.vy
         else:
-            self.model.player.vy = self.model.player.vy/abs(self.model.player.vy)*self.model.player.maxspeed
-            self.model.player.y += self.model.player.vy
+            self.player.vy = self.player.vy/abs(self.player.vy)*self.player.maxspeed
+            self.player.y += self.player.vy
 
 class Wall(Block):
     def __init__(self, model, x, y):
@@ -151,29 +188,41 @@ class Wall(Block):
 class Lava(Block):
     def __init__(self, model, x, y):
         Block.__init__(self, lavacolor, x, y)
-        self.model = model
+        self.player = model.player
 
-    # def interact(self, player):
-    #     Node.interact(self, player)
+    def interact(self,player):
+        return 'lava'
 
-class Start(Block):
-    pass
-
-class End(Block):
-    pass
-
-class Ice(Block):
-    pass
-
+class Ice(Block, Node):
+    def __init__(self, model, x, y):
+        Block.__init__(self, icecolor, x, y)
+        self.player = model.player
+        
 class Mud(Block):
-    pass
+    def __init__(self, model, x, y):
+        Block.__init__(self, mudcolor, x, y)
+        self.player = model.player
 
-class Reverse(Block):
+    def interact(self,player):
+        return 'mud'
+
+class Reverse(Block, Node):
     def __init__(self,model,x,y):
         Block.__init__(self, reversecolor, x, y)
-        self.model = model       
+        self.player = model.player    
 
-    pass
+class Start(Block, Node):
+    def __init__(self, model, x, y):
+        Block.__init__(self, startcolor, x, y)
+        self.player = model.player
+
+class End(Block):
+    def __init__(self, model, x, y):
+        Block.__init__(self, endcolor, x, y)
+        self.model = model
+
+    def interact(self,player):
+        return 'end'
 
 class PyGamePathView:
     """
@@ -209,14 +258,48 @@ class PyGamePathController:
         self.speed = speed
 
     def handle_keyboard_event(self, event):
-        if event.key == pygame.K_LEFT:
-            self.model.player.vx += -self.speed
-        if event.key == pygame.K_RIGHT:
-            self.model.player.vx += self.speed
-        if event.key == pygame.K_UP:
-            self.model.player.vy += -self.speed
-        if event.key == pygame.K_DOWN:
-            self.model.player.vy += self.speed
+        local_area = model.update()
+        state = 'node'
+
+        for block in local_area:
+            if str(block.__class__) == '__main__.Ice':
+                return
+            if str(block.__class__) == '__main__.Reverse':
+                state = 'reverse'
+
+        if state == 'node':
+            if event.key == pygame.K_LEFT:
+                self.model.player.vx += -self.speed
+            if event.key == pygame.K_RIGHT:
+                self.model.player.vx += self.speed
+            if event.key == pygame.K_UP:
+                self.model.player.vy += -self.speed
+            if event.key == pygame.K_DOWN:
+                self.model.player.vy += self.speed
+        elif state == 'reverse':
+            if event.key == pygame.K_LEFT:
+                self.model.player.vx += self.speed
+            if event.key == pygame.K_RIGHT:
+                self.model.player.vx += -self.speed
+            if event.key == pygame.K_UP:
+                self.model.player.vy += self.speed
+            if event.key == pygame.K_DOWN:
+                self.model.player.vy += -self.speed
+
+        if event.key == pygame.K_ESCAPE:
+            self.model.choice = None
+        if event.key == pygame.K_r:
+            for block in self.model.world:
+                if str(self.model.world[block].__class__) == '__main__.Start':
+                    if block[1] == ref:
+                        pass
+                    else:
+                        self.model.player.x = block[0]
+                        self.model.player.y = block[1]
+                        self.model.player.vx = 0
+                        self.model.player.vy = 0
+                else:
+                    pass
 
     def handle_mouse_event(self, event):
         if event.type != MOUSEBUTTONDOWN:
@@ -224,7 +307,11 @@ class PyGamePathController:
         if event.type == MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
             mx, my = roundpoint(mx, my)
-            model.placeitem(mx,my)
+            if self.model.choice == None:
+                self.model.choice = model.getitem(mx, my)
+            else:
+                model.placeitem(self.model.choice,mx,my)
+
 
 if __name__ == '__main__':
     pygame.init()
