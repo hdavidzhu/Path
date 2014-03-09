@@ -22,7 +22,7 @@ class PathModel:
         self.player.update()
     pass
 
-class Player(pygame.sprite.Sprite):
+class Player():
     """
     Creates a player for the game. Currently it inherits from pygame sprite because of pygame's inherent edge detection code.
     """
@@ -41,12 +41,12 @@ class Player(pygame.sprite.Sprite):
         if abs(self.vx) <= self.maxx:
             self.x += self.vx
         else:
-            self.x += self.maxx
+            self.x += self.maxx  # Doesn't work right now.
         if abs(self.vy) <= self.maxy:
             self.y += self.vy
     pass
 
-class Block(pygame.sprite.Sprite):
+class Block():
     """
     Creates a block for the game. Currently it inherits from pygame sprite because of pygame's inherent edge detection code.
     """
