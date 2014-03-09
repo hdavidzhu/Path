@@ -14,6 +14,8 @@ wallcolor = 130, 130,130
 nodecolor = 217, 217, 217
 playercolor = 111, 255, 137
 
+world = {}
+
 # Set screen sizes and declare ref for future reference for blocks.
 global ref
 global swidth
@@ -22,33 +24,29 @@ ref = 20
 swidth = 36*ref
 sheight = 24*ref
 
+def roundpoint(a, b):
+    return ((int(a) / ref) * ref, (int(b) / ref) * ref)
+
 class PathModel:
     """
     Encodes game state.
     """
     def __init__(self):
-        self.player = Player((255,255,255),10,10,370)
-        self.nodes = []
-        self.walls = []
+        self.player = Player((255,255,255),10,100,370)
+        self.world = world
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
-                node = Node(x,y)
-                self.nodes.append(node)
-        self.boundaries = []
+                node = Node(self,x,y)
+                self.world[(node.x,node.y)] = node
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
                 if x not in range(ref,swidth-ref,ref) or y not in range(ref,sheight-ref,ref):
-                    boundary = Wall(x,y)
-                    self.boundaries.append(boundary)
+                    boundary = Wall(self,x,y)
+                    self.world[(boundary.x,boundary.y)] = boundary
 
     def placeitem(self, x, y):
-        wall = Wall(x,y)
-        self.walls.append(wall)
-        counter = 0
-        for node in self.nodes:
-            if node.x == x and node.y == y:
-                del self.nodes[counter]
-            counter += 1
+        wall = Wall(self,x,y)
+        self.world[(wall.x,wall.y)] = wall
 
     def update(self):
         self.player.update()
@@ -62,23 +60,32 @@ class Player():
         self.side = side
         self.x = x
         self.y = y
+        self.left = self.x
+        self.right = x + self.side
+        self.top = self.y
+        self.bottom = y + self.side
         self.vx = 0.0
         self.vy = 0.0
-        self.maxx = 2.0
-        self.maxy = 2.0
+        self.maxspeed = 1.0
 
     def update(self):
-        if abs(self.vx) <= self.maxx:
-            self.x += self.vx
-        else:
-            self.vx = self.vx/abs(self.vx)*self.maxx
-            self.x += self.vx
-        if abs(self.vy) <= self.maxy:
-            self.y += self.vy
-        else:
-            self.vy = self.vy/abs(self.vy)*self.maxy
-            self.y += self.vy
-    pass
+        # Updates boundaries.
+        self.left = self.x
+        self.right = self.x + self.side
+        self.top = self.y
+        self.bottom = self.y + self.side
+
+        # Interaction - checks collisions of player with the world.
+        ul = roundpoint(self.left, self.top)
+        ur = roundpoint(self.right, self.top)
+        ll = roundpoint(self.left, self.bottom)
+        lr = roundpoint(self.right, self.bottom)
+
+        local_area = [world[ul],world[ur],world[ll],world[lr]]
+
+        for block in local_area:
+            block.interact(self)
+
 
 class Block():
     """
@@ -88,18 +95,51 @@ class Block():
         self.color = color
         self.side = ref
         self.x = x
-        # self.px = x + self.side
         self.y = y
-        # self.py = y + self.side
-
+        self.left = self.x
+        self.right = x + self.side
+        self.top = self.y
+        self.bottom = y + self.side
 
 class Node(Block):
-    def __init__(self, x, y):
-        Block.__init__(self, black, x, y)
+    def __init__(self, model, x, y):
+        Block.__init__(self, nodecolor, x, y)
+        self.model = model
+
+    def interact(self,player):
+        if abs(self.model.player.vx) <= self.model.player.maxspeed:
+            self.model.player.x += self.model.player.vx
+        else:
+            self.model.player.vx = self.model.player.vx/abs(self.model.player.vx)*self.model.player.maxspeed
+            self.model.player.x += self.model.player.vx
+        if abs(self.model.player.vy) <= self.model.player.maxspeed:
+            self.model.player.y += self.model.player.vy
+        else:
+            self.model.player.vy = self.model.player.vy/abs(self.model.player.vy)*self.model.player.maxspeed
+            self.model.player.y += self.model.player.vy
 
 class Wall(Block):
-    def __init__(self, x, y):
+    def __init__(self, model, x, y):
+        self.model = model
         Block.__init__(self, wallcolor, x, y)
+
+    def interact(self,player):
+        comparisons = [abs(player.left - self.right), abs(player.right - self.left), abs(player.bottom - self.top), abs(player.top - self.bottom)]
+        choice = comparisons.index(min(comparisons))
+        if choice == 0:
+            player.x += comparisons[choice]
+            player.vx = 0.0
+        elif choice == 1:
+            player.x -= comparisons[choice]
+            player.vx = 0.0
+        elif choice == 2:
+            player.y -= comparisons[choice]
+            player.vy = 0.0
+        elif choice == 3:
+            player.y += comparisons[choice]
+            player.vy = 0.0
+        else:
+            print "ERROR."
 
 class PyGamePathView:
     """
@@ -112,25 +152,14 @@ class PyGamePathView:
     def draw(self):
         self.screen.fill(pygame.Color(black[0],black[1],black[2]))
         
-        # Draws nodes.
-        for node in self.model.nodes:
-            temp = pygame.Rect(node.x,node.y,node.side,node.side)
-            pygame.draw.rect(self.screen, pygame.Color(nodecolor[0],nodecolor[1],nodecolor[2]),temp)
-
-        # Draws outer boundaries.
-        for boundary in self.model.boundaries:
-            temp = pygame.Rect(boundary.x,boundary.y,boundary.side,boundary.side)
-            pygame.draw.rect(self.screen, pygame.Color(wallcolor[0],wallcolor[1],wallcolor[2]),temp)
+        for block in self.model.world:
+            value = self.model.world[block]
+            temp = pygame.Rect(value.x,value.y,value.side,value.side)
+            pygame.draw.rect(self.screen, pygame.Color(value.color[0],value.color[1],value.color[2]),temp)
 
         # Draws player.
         temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
         pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
-
-        # Draw placed wall.
-        if len(self.model.walls) > 0:
-            for wall in self.model.walls:
-                temp = pygame.Rect(wall.x,wall.y,wall.side,wall.side)
-                pygame.draw.rect(self.screen, pygame.Color(wallcolor[0],wallcolor[1],wallcolor[2]),temp)
 
         pygame.display.update()
 
@@ -162,8 +191,7 @@ class PyGamePathController:
             return
         if event.type == MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
-            mx = (mx / ref) * ref
-            my = (my / ref) * ref
+            mx, my = roundpoint(mx, my)
             model.placeitem(mx,my)
 
 if __name__ == '__main__':
@@ -173,7 +201,7 @@ if __name__ == '__main__':
 
     screen = pygame.display.set_mode(size)
     clock = pygame.time.Clock()
-    speed = .5
+    speed = .25
 
     model = PathModel()
     view = PyGamePathView(model, screen)
