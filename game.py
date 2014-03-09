@@ -11,12 +11,20 @@ black = 0,0,0
 white = 255,255,255
 red = 255,0,0
 
+global sw
+global sh
+
+sw, sh = 1000, 400
+
 class PathModel:
     """
     Encodes game state.
     """
     def __init__(self):
         self.player = Player((255,255,255),10,10,370)
+        self.nodes = []
+        # for x in range():
+        #     self.node = Block(black,)
 
     def update(self):
         self.player.update()
@@ -60,7 +68,16 @@ class Block():
         self.width = width
         self.x = x
         self.y = y
+
+class Node(Block):
+    def __init__(self, x, y):
+        Block.__init__(self, black, )
     pass
+
+class Wall(Block):
+    def __init__(self, x, y):
+        Block.__init__(self, (200,200,200), 100, 100, x, y)
+        self.awesomeness = awesomeness
 
 class PyGamePathView:
     """
@@ -108,7 +125,8 @@ class PathMouseController:
 if __name__ == '__main__':
     pygame.init()
 
-    size = width, height = 600, 400
+    size = swidth, sheight
+
     screen = pygame.display.set_mode(size)
     clock = pygame.time.Clock()
     speed = .5
