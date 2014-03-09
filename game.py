@@ -9,7 +9,7 @@ from pygame.locals import *
 # Define colors.
 black = 0,0,0
 white = 255,255,255
-red = 255,0,0
+red = 255,0,0   # This is the side reference for creating the whole game grid.
 wallcolor = 130, 130,130
 nodecolor = 217, 217, 217
 playercolor = 111, 255, 137
@@ -29,6 +29,7 @@ class PathModel:
     def __init__(self):
         self.player = Player((255,255,255),10,10,370)
         self.nodes = []
+        self.walls = []
         for x in range(0,swidth,ref):
             for y in range(0,sheight,ref):
                 node = Node(x,y)
@@ -40,6 +41,14 @@ class PathModel:
                     boundary = Wall(x,y)
                     self.boundaries.append(boundary)
 
+    def placeitem(self, x, y):
+        wall = Wall(x,y)
+        self.walls.append(wall)
+        counter = 0
+        for node in self.nodes:
+            if node.x == x and node.y == y:
+                del self.nodes[counter]
+            counter += 1
 
     def update(self):
         self.player.update()
@@ -79,7 +88,10 @@ class Block():
         self.color = color
         self.side = ref
         self.x = x
+        # self.px = x + self.side
         self.y = y
+        # self.py = y + self.side
+
 
 class Node(Block):
     def __init__(self, x, y):
@@ -98,7 +110,7 @@ class PyGamePathView:
         self.screen = screen
 
     def draw(self):
-        self.screen.fill(pygame.Color(red[0],red[1],red[2]))
+        self.screen.fill(pygame.Color(black[0],black[1],black[2]))
         
         # Draws nodes.
         for node in self.model.nodes:
@@ -113,14 +125,19 @@ class PyGamePathView:
         # Draws player.
         temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
         pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
-        
+
+        # Draw placed wall.
+        if len(self.model.walls) > 0:
+            for wall in self.model.walls:
+                temp = pygame.Rect(wall.x,wall.y,wall.side,wall.side)
+                pygame.draw.rect(self.screen, pygame.Color(wallcolor[0],wallcolor[1],wallcolor[2]),temp)
+
         pygame.display.update()
 
         # Keep time constant.
         clock.tick(60)
-    pass
 
-class PyGamePathKeyboardController:
+class PyGamePathController:
     """
     Handles keyboard inputs.
     """
@@ -139,10 +156,15 @@ class PyGamePathKeyboardController:
             self.model.player.vy += -self.speed
         if event.key == pygame.K_DOWN:
             self.model.player.vy += self.speed
-    pass
 
-class PathMouseController:
-    pass
+    def handle_mouse_event(self, event):
+        if event.type != MOUSEBUTTONDOWN:
+            return
+        if event.type == MOUSEBUTTONDOWN:
+            mx, my = pygame.mouse.get_pos()
+            mx = (mx / ref) * ref
+            my = (my / ref) * ref
+            model.placeitem(mx,my)
 
 if __name__ == '__main__':
     pygame.init()
@@ -155,7 +177,7 @@ if __name__ == '__main__':
 
     model = PathModel()
     view = PyGamePathView(model, screen)
-    controller = PyGamePathKeyboardController(model,speed)
+    controller = PyGamePathController(model,speed)
 
     running = True
 
@@ -167,6 +189,8 @@ if __name__ == '__main__':
                 running = False
             if event.type == KEYDOWN:
                 controller.handle_keyboard_event(event)
+            if event.type == MOUSEBUTTONDOWN:
+                controller.handle_mouse_event(event)
         model.update()
         view.draw()
         clock.tick(60)
