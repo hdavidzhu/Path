@@ -118,8 +118,6 @@ class PathModel:
                 pass
             else:
                 block = choice.__class__(model,x,y)
-                # print choice
-                # print choice.__class__
                 self.world[(block.x,block.y)] = block
 
     def update(self):
@@ -133,22 +131,19 @@ class PathModel:
             temp[block] = str(self.world[block].__class__) #I'm not outputting just the class like I was before
         target = open(str(time())+'.txt','a')
         target.write(str(temp))
-        print temp
 
     def load(self):
         for block in self.world:
             if block[0] in range(3*ref,swidth-3*ref,ref) and block[1] in range(3*ref,sheight-3*ref,ref):
                 self.world[block] = Node(self,block[0],block[1])
-        target = open('levelload.txt','r')
+
+        temp = easygui.enterbox(msg='What level do you want to play?', title='Load', default='', strip=True)
+        target = open(temp,'r')
         temp = eval(target.read())
         for thing in temp:
-            # self.world[thing] = Node(self,thing[0],thing[1])
             for block in self.palette:                
-                print str(temp[thing]), str(self.palette[block].__class__) 
                 if str(self.palette[block].__class__) == temp[thing]:
                     self.world[thing] = self.palette[block].__class__(self,thing[0],thing[1])
-                # elif:
-                #     self.world[thing] = Node(self,thing[0],thing[1]) 
 
 class Player():
     """
