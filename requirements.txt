@@ -1,0 +1,3 @@
+easygui==0.96
+pygame==1.9.1release
+system-service==0.1.6
