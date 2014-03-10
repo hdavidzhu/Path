@@ -2,3 +2,5 @@
 [ ] Interact for end block.
 [ ] Save.
 [ ] Convert python game to executable.
+[ ] Magnitude speed fix.
+[ ] Text input load level.
