@@ -2,7 +2,7 @@
 Path - The Journey of Bob
 By: David Zhu and Charlie Mouton
 """
-import sys, pygame, pygame.mixer, copy
+import sys, pygame, pygame.mixer, copy, time
 from copy import deepcopy as dcp
 from pygame.locals import *
 
@@ -105,6 +105,21 @@ class PathModel:
 
     def update(self):
         return self.player.update()
+
+    def save(self):
+        temp = {}
+        for block in self.world:
+            temp[block] = self.world[block].__class__
+        target = open('level1.txt','a')
+        target.write(str(temp))
+        print temp
+
+    def load(self):
+        target = open('levelload.txt','r')
+        temp = eval(target)
+        
+
+
 
 class Player():
     """
@@ -407,6 +422,7 @@ class PyGamePathController:
                     if (mx, my) in model.palette:
                         self.model.choice = model.getitem(mx, my)
                     else:
+                        model.save()
                         model.placeitem(self.model.choice,mx,my)
                 
 if __name__ == '__main__':
