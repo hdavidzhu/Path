@@ -4,6 +4,7 @@ By: David Zhu and Charlie Mouton
 """
 import sys, pygame, pygame.mixer, copy, easygui
 from copy import deepcopy as dcp
+from time import time
 from pygame.locals import *
 
 # Define colors.
@@ -34,11 +35,11 @@ playbutton = pygame.transform.scale(playbutton, (ref,ref))
 pausebutton = pygame.image.load('pause.png')
 pausebutton = pygame.transform.scale(pausebutton, (ref,ref))
 
-savebutton = pygame.image.load('save.png')
-savebutton = pygame.transform.scale(savebutton, (ref,ref))
+saveimage = pygame.image.load('save.png')
+saveimage = pygame.transform.scale(saveimage,(ref,ref))
 
-loadbutton = pygame.image.load('load.png')
-loadbutton = pygame.transform.scale(loadbutton, (ref,ref))
+loadimage = pygame.image.load('load.png')
+loadimage = pygame.transform.scale(loadimage, (ref,ref))
 
 bob = pygame.image.load('bob.png')
 bob = pygame.transform.scale(bob, (15,15))
@@ -88,10 +89,10 @@ class PathModel:
         self.playbuild = PlayBuild(self,ref,ref)
 
         # Create save button.
-        self.save = Save(self,ref,3*ref)
+        self.savebutton = Save(self,ref,3*ref)
 
         # Create load button.
-        self.load = Load(self,ref,5*ref)
+        self.loadbutton = Load(self,ref,5*ref)
 
     def getitem(self,x,y):
         """
@@ -117,10 +118,31 @@ class PathModel:
                 pass
             else:
                 block = choice.__class__(model,x,y)
+                print block
                 self.world[(block.x,block.y)] = block
 
     def update(self):
         return self.player.update()
+
+# These two are not working yet
+    def save(self):
+        temp = []
+        for block in self.world:
+            temp.append([block,self.world[block].__class__])  #I'm not outputting just the class like I was before
+        target = open(str(time()),'a')
+        target.write(str(temp))
+        # print temp
+
+    def load(self):
+        target = open('levelload.txt','r')
+        temp = target.read()
+        # print temp                   # Eval didn't really do what I wanted. I want to get save where I need it to be before tackling this.
+        for things in temp:
+            print things
+            # self.world[things[0]] = things[1](model,things[0][0],things[0][1])
+        
+
+
 
 class Player():
     """
@@ -331,10 +353,10 @@ class PyGamePathView:
             pygame.draw.rect(self.screen, pygame.Color(value.color[0],value.color[1],value.color[2]),temp)
 
         # Draws play button.
-        screen.blit(savebutton,(ref,3*ref))
+        screen.blit(saveimage,(ref,3*ref))
 
         # Draws load button.
-        screen.blit(loadbutton,(ref,5*ref))
+        screen.blit(loadimage,(ref,5*ref))
 
         if model.playmode == True:
             # Draws player.
@@ -420,11 +442,11 @@ class PyGamePathController:
                 model.playmode = not model.playmode
 
             # Save.
-            if mx == model.save.x and my == model.save.y:
+            if mx == model.savebutton.x and my == model.savebutton.y:
                 model.save()
 
             # Load.
-            if mx == model.load.x and my == model.load.y:
+            if mx == model.loadbutton.x and my == model.loadbutton.y:
                 model.load()
 
             # Determines what to do depending on playmode.
