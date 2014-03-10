@@ -21,24 +21,17 @@ startcolor = 255,235,62
 endcolor = 63,255,62
 playbuildcolor = 0,0,0
 
-# Global declaration of the world which the player interacts with.
-world = {}
-palette = {}
-
-# Switch between playmode and build mode.
-# playmode = True
-
 # Set screen sizes and declare ref for future reference for blocks.
-global ref
-global swidth
-global sheight
 ref = 20
 swidth = 36*ref
 sheight = 24*ref
 
 # Buttons
-playbuildbutton = pygame.image.load('playbuild.jpg')
-playbuildbutton = pygame.transform.scale(playbuildbutton, (ref,ref))
+playbutton = pygame.image.load('play.jpg')
+playbutton = pygame.transform.scale(playbutton, (ref,ref))
+
+pausebutton = pygame.image.load('pause.png')
+pausebutton = pygame.transform.scale(pausebutton, (ref,ref))
 
 def roundpoint(a, b):
     """
@@ -52,8 +45,10 @@ def roundpoint(a, b):
 class PathModel:
     """Encodes game state."""
     def __init__(self):
-        self.player = Player((255,255,255),.75*ref,100,370)
-        self.world = world
+        self.player = Player(self,(255,255,255),.75*ref,100,370)
+        self.world = {}
+        self.palette = {}
+        self.playmode = False
         self.choice = None
 
         # Create base nodes.
@@ -71,13 +66,13 @@ class PathModel:
                     self.world[(boundary.x,boundary.y)] = boundary
 
         # Create block palette.
-        palette[(3*ref,ref)] = world[(3*ref,ref)] = Wall(self,3*ref,ref)
-        palette[(5*ref,ref)] = world[(5*ref,ref)] = Lava(self,5*ref,ref)
-        palette[(7*ref,ref)] = world[(7*ref,ref)] = Ice(self,7*ref,ref)
-        palette[(9*ref,ref)] = world[(9*ref,ref)] = Mud(self,9*ref,ref)
-        palette[(11*ref,ref)] = world[(11*ref,ref)] = Reverse(self,11*ref,ref)
-        palette[(13*ref,ref)] = world[(13*ref,ref)] = Start(self,13*ref,ref)
-        palette[(15*ref,ref)] = world[(15*ref,ref)] = End(self,15*ref,ref)
+        self.palette[(3*ref,ref)] = self.world[(3*ref,ref)] = Wall(self,3*ref,ref)
+        self.palette[(5*ref,ref)] = self.world[(5*ref,ref)] = Lava(self,5*ref,ref)
+        self.palette[(7*ref,ref)] = self.world[(7*ref,ref)] = Ice(self,7*ref,ref)
+        self.palette[(9*ref,ref)] = self.world[(9*ref,ref)] = Mud(self,9*ref,ref)
+        self.palette[(11*ref,ref)] = self.world[(11*ref,ref)] = Reverse(self,11*ref,ref)
+        self.palette[(13*ref,ref)] = self.world[(13*ref,ref)] = Start(self,13*ref,ref)
+        self.palette[(15*ref,ref)] = self.world[(15*ref,ref)] = End(self,15*ref,ref)
 
         # Create playbuild button.
         self.playbuild = PlayBuild(self,ref,ref)
@@ -86,7 +81,7 @@ class PathModel:
         """
         Upon mouseclick, we capture the type of block that is selected and adds it to be prepared to be placed upon second and subsequent mouseclicks.
         """
-        return world[(x,y)]
+        return self.world[(x,y)]
 
     def placeitem(self, choice, x, y):
         """
@@ -96,12 +91,12 @@ class PathModel:
         """
         if x in range(3*ref,swidth-3*ref,ref) and y in range(3*ref,sheight-3*ref,ref):
             if str(choice.__class__) == '__main__.Start':
-                for block in world:
-                    if str(world[block].__class__) == '__main__.Start':
+                for block in self.world:
+                    if str(self.world[block].__class__) == '__main__.Start':
                         if block[1] == ref:
                             pass
                         else:
-                            world[block] = Node(model,block[0],block[1])
+                            self.world[block] = Node(model,block[0],block[1])
             if self.world[(x,y)].__class__ == choice.__class__:
                 pass
             else:
@@ -115,7 +110,7 @@ class Player():
     """
     Creates a player for the game. Currently it inherits from pygame sprite because of pygame's inherent edge detection code.
     """
-    def __init__(self, color, side, x, y):
+    def __init__(self, model, color, side, x, y):
         self.color = color
         self.side = side
         self.x = x
@@ -142,7 +137,7 @@ class Player():
         lr = roundpoint(self.right, self.bottom)
 
         # Find the local area for the character.
-        local_area = [world[ul],world[ur],world[ll],world[lr]]
+        local_area = [model.world[ul],model.world[ur],model.world[ll],model.world[lr]]
 
         # Analyze for each area.
         for block in local_area:
@@ -313,12 +308,20 @@ class PyGamePathView:
             temp = pygame.Rect(value.x,value.y,value.side,value.side)
             pygame.draw.rect(self.screen, pygame.Color(value.color[0],value.color[1],value.color[2]),temp)
 
-        # Draws player.
-        temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
-        pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
+        if model.playmode == True:
+            # Draws player.
+            temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
+            pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
 
-        # Draws play button.
-        screen.blit(playbuildbutton,(ref,ref))
+            # Draws hidden rectangle.
+            temp = pygame.Rect(3*ref,ref,len(model.palette)*2*ref,ref)
+            pygame.draw.rect(self.screen, pygame.Color(0,0,0),temp)
+
+            # Draws play button.
+            screen.blit(playbutton,(ref,ref))
+        else:
+            # Draws play button.
+            screen.blit(pausebutton,(ref,ref))
 
         pygame.display.update()
 
@@ -379,30 +382,32 @@ class PyGamePathController:
                 self.model.player.vy += -self.speed
 
     def handle_mouse_event(self, event):
-        global playmode
-
         if event.type == MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
             mx, my = roundpoint(mx, my)
 
             # Toggle button for play and pause mode.
             if mx == self.playbuild.x and my == self.playbuild.y:
-                playmode = not playmode
+                model.playmode = not model.playmode
 
             # Determines what to do depending on playmode.
-            if playmode == True:
-                for block in palette:
-                    block.color = black
-                pass
-
-            if self.model.choice == None: # if no block type is stored, then default to a node input.
-                self.model.choice = Node(self.model,mx,my)   
-                model.placeitem(self.model.choice,mx,my)
+            if model.playmode == True:
+                for block in model.world:
+                    if str(model.world[block].__class__) == '__main__.Start':
+                        if block[1] == ref:
+                            pass
+                        else:
+                            model.player.x = block[0]
+                            model.player.y = block[1]
             else:
-                if (mx, my) in palette:
-                    self.model.choice = model.getitem(mx, my)
-                else:
+                if self.model.choice == None: # if no block type is stored, then default to a node input.
+                    self.model.choice = Node(self.model,mx,my)   
                     model.placeitem(self.model.choice,mx,my)
+                else:
+                    if (mx, my) in model.palette:
+                        self.model.choice = model.getitem(mx, my)
+                    else:
+                        model.placeitem(self.model.choice,mx,my)
                 
 if __name__ == '__main__':
     pygame.init()
