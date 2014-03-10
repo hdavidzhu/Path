@@ -134,7 +134,8 @@ class PathModel:
         # print temp
 
     def load(self):
-        target = open('levelload.txt','r')
+        temp = easygui.enterbox(msg='Which file do you want to load?', title='LOAD', default='', strip=True)
+        target = open(temp,'r')
         temp = target.read()
         # print temp                   # Eval didn't really do what I wanted. I want to get save where I need it to be before tackling this.
         for things in temp:
