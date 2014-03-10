@@ -2,7 +2,7 @@
 Path - The Journey of Bob
 By: David Zhu and Charlie Mouton
 """
-import sys, pygame, pygame.mixer, copy
+import sys, pygame, pygame.mixer, copy, easygui
 from copy import deepcopy as dcp
 from pygame.locals import *
 
