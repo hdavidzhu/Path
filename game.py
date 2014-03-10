@@ -118,7 +118,8 @@ class PathModel:
                 pass
             else:
                 block = choice.__class__(model,x,y)
-                print block
+                # print choice
+                # print choice.__class__
                 self.world[(block.x,block.y)] = block
 
     def update(self):
@@ -126,20 +127,29 @@ class PathModel:
 
 # These two are not working yet
     def save(self):
-        temp = []
+        temp = {}
         for block in self.world:
-            temp.append([block,self.world[block].__class__])  #I'm not outputting just the class like I was before
-        target = open(str(time()),'a')
+            # if block[0] in range(3*ref,swidth-3*ref,ref) and block[1] in range(3*ref,sheight-3*ref,ref):
+            temp[block] = str(self.world[block].__class__) #I'm not outputting just the class like I was before
+        target = open(str(time())+'.txt','a')
         target.write(str(temp))
-        # print temp
+        print temp
 
     def load(self):
+        for block in self.world:
+            if block[0] in range(3*ref,swidth-3*ref,ref) and block[1] in range(3*ref,sheight-3*ref,ref):
+                self.world[block] = Node(self,block[0],block[1])
         target = open('levelload.txt','r')
-        temp = target.read()
-        # print temp                   # Eval didn't really do what I wanted. I want to get save where I need it to be before tackling this.
-        for things in temp:
-            print things
-            # self.world[things[0]] = things[1](model,things[0][0],things[0][1])
+        temp = eval(target.read())
+        for thing in temp:
+            # self.world[thing] = Node(self,thing[0],thing[1])
+            for block in self.palette:                
+                print str(temp[thing]), str(self.palette[block].__class__) 
+                if str(self.palette[block].__class__) == temp[thing]:
+                    self.world[thing] = self.palette[block].__class__(self,thing[0],thing[1])
+                # elif:
+                #     self.world[thing] = Node(self,thing[0],thing[1]) 
+        
         
 
 
