@@ -60,6 +60,7 @@ class PathModel:
         self.world = {}
         self.palette = {}
         self.playmode = False
+        self.endmode = False
         self.choice = None
 
         # Create base nodes.
@@ -89,7 +90,7 @@ class PathModel:
         self.playbuild = PlayBuild(self,ref,ref)
 
         # Create save button.
-        self.savebutton = Save(self,ref,3*ref)
+        self.savebutton = None
 
         # Create load button.
         self.loadbutton = Load(self,ref,5*ref)
@@ -123,14 +124,16 @@ class PathModel:
     def update(self):
         return self.player.update()
 
-# These two are not working yet
     def save(self):
-        temp = {}
-        for block in self.world:
-            # if block[0] in range(3*ref,swidth-3*ref,ref) and block[1] in range(3*ref,sheight-3*ref,ref):
-            temp[block] = str(self.world[block].__class__) #I'm not outputting just the class like I was before
-        target = open(str(time())+'.txt','a')
-        target.write(str(temp))
+            input_msg = easygui.enterbox(msg='Enter the name of your level (*.txt). No spaces, please.', title='Hello!', default='', strip=True)
+            if input_msg:
+                # Grabs game window state.
+                temp = {}
+                for block in self.world:
+                    if block[0] in range(3*ref,swidth-3*ref,ref) and block[1] in range(3*ref,sheight-3*ref,ref):
+                        temp[block] = str(self.world[block].__class__)
+                target = open(input_msg+'.txt','a')
+                target.write(str(temp))
 
     def load(self):
         for block in self.world:
@@ -138,12 +141,13 @@ class PathModel:
                 self.world[block] = Node(self,block[0],block[1])
 
         temp = easygui.enterbox(msg='What level do you want to play?', title='Load', default='', strip=True)
-        target = open(temp,'r')
-        temp = eval(target.read())
-        for thing in temp:
-            for block in self.palette:                
-                if str(self.palette[block].__class__) == temp[thing]:
-                    self.world[thing] = self.palette[block].__class__(self,thing[0],thing[1])
+        if temp:
+            target = open(temp,'r')
+            temp = eval(target.read())
+            for thing in temp:
+                for block in self.palette:                
+                    if str(self.palette[block].__class__) == temp[thing]:
+                        self.world[thing] = self.palette[block].__class__(self,thing[0],thing[1])
 
 class Player():
     """
@@ -320,8 +324,24 @@ class End(Block):
         self.model = model
 
     def interact(self,player):
-        """ """
-        
+        """"""
+        for block in model.world:
+            if str(model.world[block].__class__) == '__main__.Start' and block[1] != ref:
+                model.player.x = block[0] + .125*ref
+                model.player.y = block[1] + .125*ref
+                model.player.vx = 0
+                model.player.vy = 0
+
+        # Create save button.
+        # choices = ['Yes', 'No']
+        # reply = easygui.buttonbox(msg="Congrats! You've beat your level. Would you like to save?", title='Well Done!', choices=choices)
+        # if reply == "Yes":
+        #     model.save()
+        self.model.savebutton = Save(self,ref,3*ref)
+        self.model.endmode = True
+        self.model.playmode = False
+
+
 
 class PlayBuild(Block):
     def __init__(self, model, x, y):
@@ -352,9 +372,12 @@ class PyGamePathView:
             value = self.model.world[block]
             temp = pygame.Rect(value.x,value.y,value.side,value.side)
             pygame.draw.rect(self.screen, pygame.Color(value.color[0],value.color[1],value.color[2]),temp)
-
-        # Draws play button.
-        screen.blit(saveimage,(ref,3*ref))
+        if model.endmode == True:
+            # Draws save button.
+            screen.blit(saveimage,(ref,3*ref))
+        else:
+            temp = pygame.Rect(ref,3*ref,ref,ref)
+            pygame.draw.rect(self.screen, pygame.Color(0,0,0),temp)
 
         # Draws load button.
         screen.blit(loadimage,(ref,5*ref))
@@ -442,13 +465,14 @@ class PyGamePathController:
             if mx == self.playbuild.x and my == self.playbuild.y:
                 model.playmode = not model.playmode
 
-            # Save.
-            if mx == model.savebutton.x and my == model.savebutton.y:
-                model.save()
-
             # Load.
             if mx == model.loadbutton.x and my == model.loadbutton.y:
                 model.load()
+
+            # Save.
+            if model.endmode == True:
+                if mx == model.savebutton.x and my == model.savebutton.y:
+                    model.save()
 
             # Determines what to do depending on playmode.
             if model.playmode == True:
@@ -459,7 +483,10 @@ class PyGamePathController:
                         else:
                             model.player.x = block[0] + .125*ref
                             model.player.y = block[1] + .125*ref
+                            model.player.vx = 0.0
+                            model.player.vy = 0.0
             else:
+                model.endmode = False
                 if self.model.choice == None: # if no block type is stored, then default to a node input.
                     self.model.choice = Node(self.model,mx,my)   
                     model.placeitem(self.model.choice,mx,my)
