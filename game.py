@@ -27,11 +27,21 @@ swidth = 36*ref
 sheight = 24*ref
 
 # Buttons
+
 playbutton = pygame.image.load('play.jpg')
 playbutton = pygame.transform.scale(playbutton, (ref,ref))
 
 pausebutton = pygame.image.load('pause.png')
 pausebutton = pygame.transform.scale(pausebutton, (ref,ref))
+
+savebutton = pygame.image.load('save.png')
+savebutton = pygame.transform.scale(savebutton, (ref,ref))
+
+loadbutton = pygame.image.load('load.png')
+loadbutton = pygame.transform.scale(loadbutton, (ref,ref))
+
+bob = pygame.image.load('bob.png')
+bob = pygame.transform.scale(bob, (15,15))
 
 def roundpoint(a, b):
     """
@@ -76,6 +86,12 @@ class PathModel:
 
         # Create playbuild button.
         self.playbuild = PlayBuild(self,ref,ref)
+
+        # Create save button.
+        self.save = Save(self,ref,3*ref)
+
+        # Create load button.
+        self.load = Load(self,ref,5*ref)
 
     def getitem(self,x,y):
         """
@@ -219,12 +235,11 @@ class Lava(Block):
         """The lava block kills our character, thus returning his position to the starting block."""
         for block in model.world:
             if str(model.world[block].__class__) == '__main__.Start' and block[1] != ref:
-                self.player.x = block[0]
-                self.player.y = block[1]
+                self.player.x = block[0] + .125*ref
+                self.player.y = block[1] + .125*ref
                 self.player.vx = 0
                 self.player.vy = 0
         
-
 class Ice(Block, Node):
     """ 
     This block disallows our character from changing its velocity. Can spell doom for our character if a wall kills its velocity while on ice.
@@ -243,7 +258,6 @@ class Mud(Block):
         self.player = model.player
 
     def interact(self,player):
-        """ qwqweqe"""
         if abs(self.player.vx) <= self.player.maxspeed/4:
             self.player.x += self.player.vx
         else:
@@ -290,6 +304,14 @@ class PlayBuild(Block):
     def __init__(self, model, x, y):
         Block.__init__(self, black, x, y)
 
+class Save(Block):
+    def __init__(self, model, x, y):
+        Block.__init__(self, black, x, y)
+
+class Load(Block):
+    def __init__(self, model, x, y):
+        Block.__init__(self, black, x, y)
+
 
 class PyGamePathView:
     """
@@ -308,20 +330,27 @@ class PyGamePathView:
             temp = pygame.Rect(value.x,value.y,value.side,value.side)
             pygame.draw.rect(self.screen, pygame.Color(value.color[0],value.color[1],value.color[2]),temp)
 
+        # Draws play button.
+        screen.blit(savebutton,(ref,3*ref))
+
+        # Draws load button.
+        screen.blit(loadbutton,(ref,5*ref))
+
         if model.playmode == True:
             # Draws player.
-            temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
-            pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
+            # temp = pygame.Rect(self.model.player.x,self.model.player.y,self.model.player.side,self.model.player.side)
+            # pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
+            screen.blit(bob, (self.model.player.x, self.model.player.y))
 
             # Draws hidden rectangle.
             temp = pygame.Rect(3*ref,ref,len(model.palette)*2*ref,ref)
             pygame.draw.rect(self.screen, pygame.Color(0,0,0),temp)
 
-            # Draws play button.
-            screen.blit(playbutton,(ref,ref))
+            # Draws pause button.
+            screen.blit(pausebutton,(ref,ref))
         else:
             # Draws play button.
-            screen.blit(pausebutton,(ref,ref))
+            screen.blit(playbutton,(ref,ref))
 
         pygame.display.update()
 
@@ -349,8 +378,8 @@ class PyGamePathController:
                     if block[1] == ref:
                         pass
                     else:
-                        self.model.player.x = block[0]
-                        self.model.player.y = block[1]
+                        self.model.player.x = block[0] + .125*ref
+                        self.model.player.y = block[1] + .125*ref
                         self.model.player.vx = 0
                         self.model.player.vy = 0
                 else:
@@ -390,6 +419,14 @@ class PyGamePathController:
             if mx == self.playbuild.x and my == self.playbuild.y:
                 model.playmode = not model.playmode
 
+            # Save.
+            if mx == model.save.x and my == model.save.y:
+                model.save()
+
+            # Load.
+            if mx == model.load.x and my == model.load.y:
+                model.load()
+
             # Determines what to do depending on playmode.
             if model.playmode == True:
                 for block in model.world:
@@ -397,8 +434,8 @@ class PyGamePathController:
                         if block[1] == ref:
                             pass
                         else:
-                            model.player.x = block[0]
-                            model.player.y = block[1]
+                            model.player.x = block[0] + .125*ref
+                            model.player.y = block[1] + .125*ref
             else:
                 if self.model.choice == None: # if no block type is stored, then default to a node input.
                     self.model.choice = Node(self.model,mx,my)   
