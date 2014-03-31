@@ -164,8 +164,6 @@ class Player():
         self.bottom = self.y + self.side
         self.vx = 0.0
         self.vy = 0.0
-        self.ax = 0.0
-        self.ay = 0.0
         self.maxspeed = 1.0
 
     def update(self):
@@ -215,13 +213,11 @@ class Node(Block):
         The interaction for Node is typical motion. it moves in x and y by an increment of vx and vy.
         """
         if abs(self.player.vx) <= self.player.maxspeed:
-            self.player.vx += self.player.ax
             self.player.x += self.player.vx
         else:
             self.player.vx = self.player.vx/abs(self.player.vx)*self.player.maxspeed
             self.player.x += self.player.vx
         if abs(self.player.vy) <= self.player.maxspeed:
-            self.player.vy += self.player.ay
             self.player.y += self.player.vy
         else:
             self.player.vy = self.player.vy/abs(self.player.vy)*self.player.maxspeed
@@ -290,13 +286,11 @@ class Mud(Block):
 
     def interact(self,player):
         if abs(self.player.vx) <= self.player.maxspeed/4:
-            self.player.vx += self.player.ax
             self.player.x += self.player.vx
         else:
             self.player.vx = self.player.vx/abs(self.player.vx)*self.player.maxspeed/4
             self.player.x += self.player.vx
         if abs(self.player.vy) <= self.player.maxspeed/4:
-            self.player.vy += self.player.ay
             self.player.y += self.player.vy
         else:
             self.player.vy = self.player.vy/abs(self.player.vy)*self.player.maxspeed/4
@@ -371,6 +365,8 @@ class PyGamePathView:
         self.screen = screen
 
     def draw(self):
+        self.screen.fill(pygame.Color(black[0],black[1],black[2]))
+
         # We sweep through our world dictionary, drawing the world from the inputs.
         for block in self.model.world:
             value = self.model.world[block]
@@ -392,7 +388,7 @@ class PyGamePathView:
             # pygame.draw.rect(self.screen, pygame.Color(playercolor[0],playercolor[1],playercolor[2]),temp)
             screen.blit(bob, (self.model.player.x, self.model.player.y))
 
-            # Draws hidden rectangle.`````````````````````
+            # Draws hidden rectangle.
             temp = pygame.Rect(3*ref,ref,len(model.palette)*2*ref,ref)
             pygame.draw.rect(self.screen, pygame.Color(0,0,0),temp)
 
@@ -419,58 +415,46 @@ class PyGamePathController:
     def handle_keyboard_event(self, event):
         local_area = model.update()
         state = 'node'                #default input should be processed as if our character were on a Node block.
-        if event.type == KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                self.model.choice = None  # if Escape is pressed, delete and stored block type to place.
-            if event.key == pygame.K_r:   # if r is pressed, it moves our cahracter to start, excluding the one in our palette.
-                for block in self.model.world:
-                    if str(self.model.world[block].__class__) == '__main__.Start':
-                        if block[1] == ref:
-                            pass
-                        else:
-                            self.model.player.x = block[0] + .125*ref
-                            self.model.player.y = block[1] + .125*ref
-                            self.model.player.vx = 0
-                            self.model.player.vy = 0
-                    else:
+
+        if event.key == pygame.K_ESCAPE:
+            self.model.choice = None  # if Escape is pressed, delete and stored block type to place.
+        if event.key == pygame.K_r:   # if r is pressed, it moves our cahracter to start, excluding the one in our palette.
+            for block in self.model.world:
+                if str(self.model.world[block].__class__) == '__main__.Start':
+                    if block[1] == ref:
                         pass
+                    else:
+                        self.model.player.x = block[0] + .125*ref
+                        self.model.player.y = block[1] + .125*ref
+                        self.model.player.vx = 0
+                        self.model.player.vy = 0
+                else:
+                    pass
 
-            for block in local_area:
-                if str(block.__class__) == '__main__.Ice':      # we can return here because inputs do not matter in the case of ice.
-                    return
-                if str(block.__class__) == '__main__.Reverse':  # We use states to determine how to proceed with input processing.
-                    state = 'reverse'
+        for block in local_area:
+            if str(block.__class__) == '__main__.Ice':      # we can return here because inputs do not matter in the case of ice.
+                return
+            if str(block.__class__) == '__main__.Reverse':  # We use states to determine how to proceed with input processing.
+                state = 'reverse'
 
-            if state == 'node':
-                if event.key == pygame.K_LEFT:                
-                    # self.model.player.vx += -self.speed 
-                    self.model.player.ax = -.01
-                if event.key == pygame.K_RIGHT:
-                    # self.model.player.vx += self.speed  
-                    self.model.player.ax = .01
-                if event.key == pygame.K_UP:
-                    # self.model.player.vy += -self.speed 
-                    self.model.player.ay = -.01
-                if event.key == pygame.K_DOWN:
-                    # self.model.player.vy += self.speed 
-                    self.model.player.ay = .01
-            elif state == 'reverse':
-                if event.key == pygame.K_LEFT:
-                    # self.model.player.vx += self.speed
-                    self.model.player.ax = .01
-                if event.key == pygame.K_RIGHT:
-                    # self.model.player.vx += -self.speed
-                    self.model.player.ax = -.01
-                if event.key == pygame.K_UP:
-                    # self.model.player.vy += self.speed
-                    self.model.player.ay = .01
-                if event.key == pygame.K_DOWN:
-                    # self.model.player.vy += -self.speed
-                    self.model.player.ay = -.01
-
-        if event.type == KEYUP:
-            self.model.player.ax = 0
-            self.model.player.ay = 0
+        if state == 'node':
+            if event.key == pygame.K_LEFT:
+                self.model.player.vx += -self.speed
+            if event.key == pygame.K_RIGHT:
+                self.model.player.vx += self.speed
+            if event.key == pygame.K_UP:
+                self.model.player.vy += -self.speed
+            if event.key == pygame.K_DOWN:
+                self.model.player.vy += self.speed
+        elif state == 'reverse':
+            if event.key == pygame.K_LEFT:
+                self.model.player.vx += self.speed
+            if event.key == pygame.K_RIGHT:
+                self.model.player.vx += -self.speed
+            if event.key == pygame.K_UP:
+                self.model.player.vy += self.speed
+            if event.key == pygame.K_DOWN:
+                self.model.player.vy += -self.speed
 
     def handle_mouse_event(self, event):
         if event.type == MOUSEBUTTONDOWN:
@@ -533,7 +517,8 @@ if __name__ == '__main__':
             # Exits script when exit button is pressed.
             if event.type == QUIT:
                 running = False
-            controller.handle_keyboard_event(event)
+            if event.type == KEYDOWN:
+                controller.handle_keyboard_event(event)
             if event.type == MOUSEBUTTONDOWN:
                 controller.handle_mouse_event(event)
         model.update()
