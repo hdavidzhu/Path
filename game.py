@@ -56,7 +56,7 @@ def roundpoint(a, b):
 class PathModel:
     """Encodes game state."""
     def __init__(self):
-        self.player = Player(self,(255,255,255),.75*ref,100,370)
+        self.player = Player(self,(255,255,255),.60*ref,100,370)
         self.world = {}
         self.palette = {}
         self.playmode = False
